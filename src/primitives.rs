@@ -312,11 +312,35 @@ pub fn calculate_pubkey_B(
 /// ph = H(I, ':', p)           (':' is a string literal)
 /// x = H(s, ph)                (s is chosen randomly)
 #[allow(non_snake_case)]
-#[allow(dead_code)]
+#[cfg(not(feature = "wow"))]
 pub fn calculate_private_key_x(I: UsernameRef, p: ClearTextPasswordRef, s: &Salt) -> PrivateKey {
     let ph = calculate_p_hash(I, p);
 
     PrivateKey::from_bytes_be(
+        HashFunc::new()
+            .chain(s.to_vec())
+            .chain(ph)
+            .finalize()
+            .as_slice(),
+    )
+}
+
+/// `x` is the users private key (only they know)
+///
+/// I:  Username                (is uppercased for WoW)
+/// p:  Cleartext Password      (is uppercased for WoW)
+/// s:  User's salt
+/// x:  Private key             (derived from p and s)
+/// ph = H(I, ':', p)           (':' is a string literal)
+/// x = H(s, ph)                (s is chosen randomly)
+///
+/// WoW flavoured (LE instead of BE)
+#[allow(non_snake_case)]
+#[cfg(feature = "wow")]
+pub fn calculate_private_key_x(I: UsernameRef, p: ClearTextPasswordRef, s: &Salt) -> PrivateKey {
+    let ph = calculate_p_hash(I, p);
+
+    PrivateKey::from_bytes_le(
         HashFunc::new()
             .chain(s.to_vec())
             .chain(ph)
